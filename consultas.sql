@@ -384,7 +384,20 @@ RETURN (get_partidos_ganados_local(nnumero_equipo, nid_torneo) + get_partidos_ga
 
 CREATE PROCEDURE get_tabla_de_posiciones(IN nnumero_equipo INT, IN nid_torneo INT)
 BEGIN
-  SELECT equipo.nombre, get_partidos_ganados_visitante
+  SELECT equipo.nombre AS equipo, 
+  get_partidos_ganados(equipo.nombre, fixture.id_torneo)*3
+  + get_partidos_empatado(equipo.nombre, fixture.id_torneo) AS PTS,
+  get_partidos_ganados(equipo.nombre, fixture.id_torneo) AS PG, 
+  get_partidos_empatado(equipo.nombre, fixture.id_torneo) AS PE, 
+  get_partidos_perdidos(equipo.nombre, fixture.id_torneo) AS PP, 
+  get_goles_a_favor(equipo.nombre, fixture.id_torneo) AS GF, 
+  get_goles_en_contra(equipo.nombre, fixture.id_torneo) AS GC, 
+  get_goles_a_favor(equipo.nombre, fixture.id_torneo) - get_goles_en_contra AS DIF
+  FROM equipo
+  INNER JOIN inscripcion ON equipo.
+
+  ORDER BY PTS DESC, DIF DESC, GF DESC
+
 
 END
 
