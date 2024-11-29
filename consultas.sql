@@ -49,123 +49,24 @@ END//
 
 delimiter ;
 
-delimiter //
-CREATE PROCEDURE generar_fixture(IN nid_torneo INT, IN nro_ruedas INT)
+delimiter // 
+
+CREATE PROCEDURE crear_fixtures(IN nid_torneo INT)
 BEGIN
-IF nro_ruedas <= 0 THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Numero de ruedas menor a 0';
-ELSE
-    SET @maxiA = (
-      SELECT id_equipo
-      FROM inscripcion
-      LEFT JOIN equipo ON equipo.numero_equipo inscripcion.numero_equipo
-      WHERE id_torneo = nid_torneo && categoria = 'MAXI' && division = 'A'
-    );
-    SET @maxiB = (
-      SELECT id_equipo
-      FROM inscripcion
-      LEFT JOIN equipo ON equipo.numero_equipo inscripcion.numero_equipo
-      WHERE id_torneo = nid_torneo && categoria = 'MAXI' && division = 'B'
-    );
-    SET @maxiC = (
-      SELECT id_equipo
-      FROM inscripcion
-      LEFT JOIN equipo ON equipo.numero_equipo inscripcion.numero_equipo
-      WHERE id_torneo = nid_torneo && categoria = 'MAXI' && division = 'C'
-    );
-    SET @superA = (
-      SELECT id_equipo
-      FROM inscripcion
-      LEFT JOIN equipo ON equipo.numero_equipo inscripcion.numero_equipo
-      WHERE id_torneo = nid_torneo && categoria = 'SUPER' && division = 'A'
-    );
-    SET @superB = (
-      SELECT id_equipo
-      FROM inscripcion
-      LEFT JOIN equipo ON equipo.numero_equipo inscripcion.numero_equipo
-      WHERE id_torneo = nid_torneo && categoria = 'SUPER' && division = 'B'
-    );
-    SET @superC = (
-      SELECT id_equipo
-      FROM inscripcion
-      LEFT JOIN equipo ON equipo.numero_equipo inscripcion.numero_equipo
-      WHERE id_torneo = nid_torneo && categoria = 'SUPER' && division = 'C'
-    );
-    SET @masterA = (
-      SELECT id_equipo
-      FROM inscripcion
-      LEFT JOIN equipo ON equipo.numero_equipo inscripcion.numero_equipo
-      WHERE id_torneo = nid_torneo && categoria = 'MASTER' && division = 'A'
-    );
-    SET @masterB = (
-      SELECT id_equipo
-      FROM inscripcion
-      LEFT JOIN equipo ON equipo.numero_equipo inscripcion.numero_equipo
-      WHERE id_torneo = nid_torneo && categoria = 'MASTER' && division = 'B'
-    );
-    SET @masterC = (
-      SELECT id_equipo
-      FROM inscripcion
-      LEFT JOIN equipo ON equipo.numero_equipo inscripcion.numero_equipo
-      WHERE id_torneo = nid_torneo && categoria = 'MASTER' && division = 'C'
-    );
+  SET @amount_of_fixtures = (
+    SELECT COUNT(division, categoria)
+    FROM inscripcion 
+    JOIN equipo ON equipo.numero_equipo
+    WHERE inscripcion.id_torneo = nid_torneo
+  );
+  
 
-    -- maxiA
-    SET @division = 'MAXI';
-    SET @categoria = 'A';
-
-    crear_ruedas: LOOP
-      SET nro_ruedas = nro_ruedas -1;
-      IF nro_ruedas < 0 THEN
-        LEAVE crear_ruedas;
-      END IF;
-      INSERT INTO rueda(numero_rueda, id_torneo, division, categoria) 
-      VALUES (nro_ruedas+1, nid_torneo, @division, @categoria);
-      -- Crear fechas
-      -- NOTE: TREAT IF ODD AMOUNT OF TEAMS!!!
-      @amount_of_fechas = (
-        SELECT COUNT(UNIQUE(*))
-        FROM @maxiA
-      );
-
-      SET @amount_of_matches = (
-        SELECT COUNT(*) 
-        FROM @maxiA t1, @maxiA t2 
-        WHERE t1.id_equipo <> t2.id_equipo
-      );
-
-      SET @amount_of_matches_per_fecha = @amount_of_matches/@amount_of_fechas;
-
-
-      DECLARE done INT DEFAULT FALSE;
-      DECLARE nro_equipo1 INT;
-      DECLARE nro_equipo2 INT;
-      DECLARE curse CURSOR FOR @maxiA;
-      DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-
-      OPEN curse;
-      crear_partidos: LOOP
-        FETCH curse INTO nro_equipo1, nro_equipo2;
-        IF done THEN
-          LEAVE crear_fechas;
-        END IF;
-
-      END LOOP;
-
-      
-
-
-      ITERATE nro_ruedas;
-    END LOOP;
-  END IF;
 END//
+
 delimiter ;
 
 delimiter //
--- nid_torneo , nid_categoria, nid_division
 
--- query obtener goles de local de un equipo nnumero_equipo
 CREATE FUNCTION get_goles_local(nnumero_equipo INT,id_torneo INT)
   RETURNS INT NOT DETERMINISTIC READS SQL DATA
   RETURN (
