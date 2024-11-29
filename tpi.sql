@@ -130,4 +130,4 @@ CREATE TABLE gol(
     id_partido INT NOT NULL REFERENCES partido,
     momento TIME NOT NULL,
     en_contra TINYINT DEFAULT 0
-);
+) ;
