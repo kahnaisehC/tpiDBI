@@ -44,7 +44,7 @@ CREATE TABLE inscripcion_jugador(
     id_torneo INT NOT NULL REFERENCES torneo,
     id_equipo INT NOT NULL REFERENCES equipo,
     nro_jugador INT NOT NULL REFERENCES jugador,
-    validado BOOLEAN NOT NULL,
+    validado BOOLEAN NOT NULL
 );
 
 CREATE TABLE jugador(
