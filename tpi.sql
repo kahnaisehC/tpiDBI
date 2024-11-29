@@ -77,14 +77,18 @@ CREATE TABLE fixture(
 CREATE TABLE rueda(
     nro_rueda INT NOT NULL,
     id_torneo INT NOT NULL REFERENCES torneo,
-    PRIMARY KEY (nro_rueda, id_torneo)
+    division ENUM('A', 'B', 'C') NOT NULL,
+    categoria ENUM('MAXI', 'SUPER', 'MASTER') NOT NULL,
+    PRIMARY KEY (nro_rueda, id_torneo, division, categoria)
 );
 
 CREATE TABLE fecha(
     nro_fecha INT NOT NULL,
     id_torneo INT NOT NULL REFERENCES torneo,
     nro_rueda INT NOT NULL REFERENCES rueda(nro_rueda),
-    PRIMARY KEY (nro_fecha, id_torneo, nro_rueda)
+    division ENUM('A', 'B', 'C') NOT NULL,
+    categoria ENUM('MAXI', 'SUPER', 'MASTER') NOT NULL,
+    PRIMARY KEY (nro_fecha, id_torneo, nro_rueda, division, categoria)
 );
 
 CREATE TABLE partido(
