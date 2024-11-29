@@ -96,6 +96,8 @@ CREATE TABLE partido(
     id_torneo INT NOT NULL REFERENCES torneo,
     nro_rueda INT NOT NULL REFERENCES rueda(nro_rueda),
     nro_fecha INT NOT NULL REFERENCES fecha(nro_fecha),
+    division ENUM('A', 'B', 'C') NOT NULL,
+    categoria ENUM('MAXI', 'SUPER', 'MASTER') NOT NULL,
     equipo_local INT NOT NULL REFERENCES equipo,
     equipo_visitante INT NOT NULL REFERENCES equipo
 );
