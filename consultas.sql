@@ -1,3 +1,6 @@
+-- CONSULTA 1
+-- Procedure que toma los datos necesarios para crear una inscripcion de un equipo al torneo
+
 delimiter //
 CREATE PROCEDURE inscribir_equipo(IN nid_torneo INT, IN nid_equipo INT, IN ndirector_tecnico INT, IN nsocio_creador INT)
 BEGIN
@@ -7,6 +10,12 @@ BEGIN
   );
 END//
 delimiter ;
+
+-- CONSULTA 2
+-- Procedure que toma los datos para crear un socio y luego crear un jugador en base a ese socio.
+-- Luego, un segundo procedure para inscribir un jugador al torneo
+-- Posee algunos checkeos para determinar si el jugador se puede inscribir al torneo con su equipo
+-- (chequea si el jugador esta registrado en el equipo y luedo si la categoria del equipo es compatible con la edad que tendra el jugador al inicio del torneo)
 
 delimiter // 
 
@@ -49,21 +58,11 @@ END//
 
 delimiter ;
 
-delimiter // 
 
-CREATE PROCEDURE crear_fixtures(IN nid_torneo INT)
-BEGIN
-  SET @amount_of_fixtures = (
-    SELECT COUNT(division, categoria)
-    FROM inscripcion 
-    JOIN equipo ON equipo.numero_equipo
-    WHERE inscripcion.id_torneo = nid_torneo
-  );
-  
-
-END//
-
-delimiter ;
+-- CONSULTA 7
+-- se declaran helper functions para obtener la cantidad de goles, partidos ganados, perdidos, etc para facilitar la query de la visitante
+-- Por ultimo, se declara un procedure que toma el id de un torneo, la division y la categoria y muestra una vista ordenada respecto
+-- a la cantidad de puntos y demas criterios mencionados en el enunciado de los equipos que estan inscriptos a ese torneo y pertenecen a esa division y categoria
 
 delimiter //
 
@@ -283,7 +282,7 @@ CREATE FUNCTION get_partidos_perdidos(nnumero_equipo INt, nid_torneo INT)
 RETURNS INT NOT DETERMINISTIC READS SQL DATA
 RETURN (get_partidos_ganados_local(nnumero_equipo, nid_torneo) + get_partidos_ganados_visitante, nid_torneo)//
 
-CREATE PROCEDURE get_tabla_de_posiciones(IN nnumero_equipo INT, IN nid_torneo INT)
+CREATE PROCEDURE get_tabla_de_posiciones(IN ndivision ENUM('A', 'B', 'C'), IN ncategoria ENUM('MAXI' ,'SUPER', 'MASTER'), IN nid_torneo INT)
 BEGIN
   SELECT equipo.nombre AS equipo, 
   get_partidos_ganados(equipo.nombre, inscripcion.id_torneo)*3
@@ -296,7 +295,7 @@ BEGIN
   get_goles_a_favor(equipo.nombre, inscripcion.id_torneo) - get_goles_en_contra AS DIF
   FROM equipo
   JOIN inscripcion ON equipo.numero_equipo = inscripcion.numero_equipo
-  WHERE inscripcion.id_torneo = nid_torneo
+  WHERE inscripcion.id_torneo = nid_torneo AND equipo.division = ndivision AND equipo.categoria = ncategoria
   ORDER BY PTS DESC, DIF DESC, GF DESC;
 END//
 
