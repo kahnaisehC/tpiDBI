@@ -19,7 +19,7 @@ CREATE TABLE equipo(
     numero_representante INT REFERENCES socio(numero_socio),
     nombre VARCHAR(50) NOT NULL UNIQUE,
     categoria ENUM('MAXI', 'SUPER', 'MASTER') NOT NULL,
-    division ENUM('A', 'B', 'C', 'D') NOT NULL 
+    division ENUM('A', 'B', 'C') NOT NULL 
 );
 
 CREATE TABLE torneo(
@@ -69,7 +69,7 @@ CREATE TABLE cancha(
 
 CREATE TABLE fixture(
     id_torneo INT NOT NULL REFERENCES torneo,
-    division ENUM('A', 'B', 'C', 'D') NOT NULL,
+    division ENUM('A', 'B', 'C') NOT NULL,
     categoria ENUM('MAXI', 'SUPER', 'MASTER') NOT NULL,
     PRIMARY KEY (id_torneo, division, categoria)
 );
