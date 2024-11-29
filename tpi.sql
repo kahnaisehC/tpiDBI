@@ -43,9 +43,8 @@ CREATE TABLE inscripcion(
 CREATE TABLE inscripcion_jugador(
     id_torneo INT NOT NULL REFERENCES torneo,
     id_equipo INT NOT NULL REFERENCES equipo,
-    nro_socio  INT NOT NULL REFERENCES socio,
+    nro_jugador INT NOT NULL REFERENCES jugador,
     validado BOOLEAN NOT NULL,
-    PRIMARY KEY (id_torneo, id_equipo, nro_socio)
 );
 
 CREATE TABLE jugador(
@@ -90,6 +89,8 @@ CREATE TABLE fecha(
 
 CREATE TABLE partido(
     id_partido INT NOT NULL PRIMARY KEY,
+    id_torneo INT NOT NULL REFERENCES torneo,
+    nro_rueda INT NOT NULL REFERENCES rueda(nro_rueda),
     nro_fecha INT NOT NULL REFERENCES fecha(nro_fecha),
     equipo_local INT NOT NULL REFERENCES equipo,
     equipo_visitante INT NOT NULL REFERENCES equipo
