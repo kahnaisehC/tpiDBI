@@ -166,66 +166,226 @@ delimiter //
 -- nid_torneo , nid_categoria, nid_division
 
 -- query obtener goles de local de un equipo nnumero_equipo
-SELECT equipo.nombre, COUNT(*) AS goles_local
+CREATE FUNCTION get_goles_local(nnumero_equipo INT,id_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+  RETURN (
+SELECT COUNT(*) AS goles_local
 FROM gol
 INNER JOIN equipo ON partido.equipo_local = equipo.numero_equipo
 INNER JOIN partido ON partido.id_partido = gol.id_partido
 INNER JOIN jugador_partido ON (jugador_partido.numero_jugador = gol.numero_jugador AND jugador_partido.id_partido = gol.id_partido)
-WHERE (partido.equipo_local = nnumero_equipo 
+WHERE partido.equipo_local = nnumero_equipo 
   AND partido.id_torneo = nid_torneo
-  AND partido.division = ndivision
-  AND partido.categoria = ncategoria
-  AND(
+  AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo
+)
+  AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+      AND(
     (jugador_partido.juega_para_local AND gol.en_contra = FALSE) 
     OR (NOT jugador_partido.juega_para_local AND gol.en_contra = TRUE)
-    
   )
-GROUP BY partido.equipo_local;
+GROUP BY equipo_local)//
+
+CREATE FUNCTION get_goles_visitante(nnumero_equipo INT, nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+  RETURN (
+    SELECT COUNT(*) AS goles_visitante
+    FROM gol
+    INNER JOIN partido ON partido.id_partido = gol.id_partido
+    INNER JOIN equipo ON partido.equipo_visitante = equipo.numero_equipo
+    INNER JOIN jugador_partido ON (jugador_partido.numero_jugador = gol.numero_jugador AND jugador_partido.id_partido = gol.id_partido)
+    WHERE (partido.equipo_visitante = nnumero_equipo)
+      AND partido.id_torneo = nid_torneo
+      AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo
+)
+      AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+      AND(
+        (NOT jugador_partido.juega_para_local AND gol.en_contra = FALSE) 
+        OR (jugador_partido.juega_para_local AND gol.en_contra = TRUE)
+      )
+    GROUP BY partido.equipo_visitante
+  )//
+
+CREATE FUNCTION get_goles_a_favor(nnumero_equipo INT,nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+RETURN (get_goles_local(nnumero_equipo, nid_torneo) + get_goles_visitante(nnumero_equipo ,nid_torneo ))//
+
+
+CREATE FUNCTION get_goles_en_contra_local(nnumero_equipo INT,id_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+  RETURN (
+SELECT COUNT(*) AS goles_local
+FROM gol
+INNER JOIN equipo ON partido.equipo_local = equipo.numero_equipo
+INNER JOIN partido ON partido.id_partido = gol.id_partido
+INNER JOIN jugador_partido ON (jugador_partido.numero_jugador = gol.numero_jugador AND jugador_partido.id_partido = gol.id_partido)
+WHERE partido.equipo_local = nnumero_equipo 
+  AND partido.id_torneo = nid_torneo
+  AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo
+)
+  AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+      AND(
+    (jugador_partido.juega_para_local AND gol.en_contra = TRUE) 
+    OR (NOT jugador_partido.juega_para_local AND gol.en_contra = FALSE)
+  )
+GROUP BY equipo_local)//
+
+CREATE FUNCTION get_goles_en_contra_visitante(nnumero_equipo INT, nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+  RETURN (
+    SELECT COUNT(*) AS goles_visitante
+    FROM gol
+    INNER JOIN partido ON partido.id_partido = gol.id_partido
+    INNER JOIN equipo ON partido.equipo_visitante = equipo.numero_equipo
+    INNER JOIN jugador_partido ON (jugador_partido.numero_jugador = gol.numero_jugador AND jugador_partido.id_partido = gol.id_partido)
+    WHERE (partido.equipo_visitante = nnumero_equipo)
+      AND partido.id_torneo = nid_torneo
+      AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo
+)
+      AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+      AND(
+        (NOT jugador_partido.juega_para_local AND gol.en_contra = TRUE) 
+        OR (jugador_partido.juega_para_local AND gol.en_contra = FALSE)
+      )
+    GROUP BY partido.equipo_visitante
+  )//
+
+CREATE FUNCTION get_goles_en_contra(nnumero_equipo INT,nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+RETURN (get_goles_en_contra_local(nnumero_equipo, nid_torneo) + get_goles_en_contra_visitante(nnumero_equipo ,nid_torneo ))//
+
 
 -- query obtener goles de visitante de un equipo nnumero_equipo
-SELECT equipo.nombre, COUNT(*) AS goles_visitante
-FROM gol
-INNER JOIN partido ON partido.id_partido = gol.id_partido
-INNER JOIN equipo ON partido.equipo_visitante = equipo.numero_equipo
-INNER JOIN jugador_partido ON (jugador_partido.numero_jugador = gol.numero_jugador AND jugador_partido.id_partido = gol.id_partido)
-WHERE (partido.equipo_visitante = nnumero_equipo 
-  AND partido.id_torneo = nid_torneo
-  AND partido.division = ndivision
-  AND partido.categoria = ncategoria
-  AND(
-    (NOT jugador_partido.juega_para_local AND gol.en_contra = FALSE) 
-    OR (jugador_partido.juega_para_local AND gol.en_contra = TRUE)
-  )
-GROUP BY partido.equipo_visitante;
 
 -- query obtener partidos ganados de un equipo de local
-SELECT equipo.nombre, COUNT(*) AS partidos_ganados
+CREATE FUNCTION get_partidos_ganados_local(nnumero_equipo INT, nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+RETURN (
+SELECT COUNT(*) AS partidos_ganados
 FROM partido
 INNER JOIN equipo ON equipo.numero_equipo = partido.equipo_local
 INNER JOIN informacion ON partido.id_partido = informacion.id_partido
-WHERE equipo.numero_equipo = nnumero_equipo 
+WHERE (equipo.numero_equipo = nnumero_equipo)
   AND partido.id_torneo = nid_torneo
-  AND partido.division = ndivision
-  AND partido.categoria = ncategoria
+      AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo
+)
+      AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
   AND (
     informacion.resultado = '1:0'
     OR informacion.resultado = '+:-'
   )
-  GROUP BY partido.equipo_local;
+  GROUP BY partido.equipo_local
+)//
 
 -- query obtener partidos ganados de un equipo de visitante 
-SELECT equipo.nombre, COUNT(*) AS partidos_ganados
+CREATE FUNCTION get_partidos_ganados_visitante(nnumero_equipo INT, nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+  RETURN (
+SELECT COUNT(*) AS partidos_ganados
 FROM partido
 INNER JOIN equipo ON equipo.numero_equipo = partido.equipo_visitante
 INNER JOIN informacion ON partido.id_partido = informacion.id_partido
-WHERE equipo.numero_equipo = nnumero_equipo 
+WHERE (equipo.numero_equipo = nnumero_equipo)
   AND partido.id_torneo = nid_torneo
-  AND partido.division = ndivision
-  AND partido.categoria = ncategoria
+      AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+      AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
   AND (
     informacion.resultado = '0:1'
+    OR informacion.resultado = '-:+')
+  GROUP BY partido.equipo_visitante
+)//
+
+CREATE FUNCTION get_partidos_ganados(nnumero_equipo INt, nid_torneo INT)
+RETURNS INT NOT DETERMINISTIC READS SQL DATA
+RETURN (get_partidos_ganados_local(nnumero_equipo, nid_torneo) + get_partidos_ganados_visitante, nid_torneo)//
+
+CREATE FUNCTION get_partidos_empatados_local(nnumero_equipo INT, nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+RETURN (
+SELECT COUNT(*) AS partidos_ganados
+FROM partido
+INNER JOIN equipo ON equipo.numero_equipo = partido.equipo_local
+INNER JOIN informacion ON partido.id_partido = informacion.id_partido
+WHERE (equipo.numero_equipo = nnumero_equipo)
+  AND partido.id_torneo = nid_torneo
+      AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo
+)
+      AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+  AND (
+    informacion.resultado = '2:2'
+  )
+  GROUP BY partido.equipo_local
+)//
+
+-- query obtener partidos ganados de un equipo de visitante 
+CREATE FUNCTION get_partidos_empatados_visitante(nnumero_equipo INT, nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+  RETURN (
+SELECT COUNT(*) AS partidos_ganados
+FROM partido
+INNER JOIN equipo ON equipo.numero_equipo = partido.equipo_visitante
+INNER JOIN informacion ON partido.id_partido = informacion.id_partido
+WHERE (equipo.numero_equipo = nnumero_equipo)
+  AND partido.id_torneo = nid_torneo
+      AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+      AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+  AND (
+    informacion.resultado = '2:2')
+  GROUP BY partido.equipo_visitante
+)//
+
+CREATE FUNCTION get_partidos_empatado(nnumero_equipo INt, nid_torneo INT)
+RETURNS INT NOT DETERMINISTIC READS SQL DATA
+RETURN (get_partidos_empatados_visitante(nnumero_equipo, nid_torneo) + get_partidos_empatados_local(nnumero_equipo, nid_torneo))//
+
+
+CREATE FUNCTION get_partidos_perdidos_local(nnumero_equipo INT, nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+RETURN (
+SELECT COUNT(*) AS partidos_ganados
+FROM partido
+INNER JOIN equipo ON equipo.numero_equipo = partido.equipo_local
+INNER JOIN informacion ON partido.id_partido = informacion.id_partido
+WHERE (equipo.numero_equipo = nnumero_equipo)
+  AND partido.id_torneo = nid_torneo
+      AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo
+)
+      AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+  AND (
+    informacion.resultado = '0:1'
+    OR informacion.resultado = '-:-'
     OR informacion.resultado = '-:+'
   )
-  GROUP BY partido.equipo_visitante;
+  GROUP BY partido.equipo_local
+)//
+
+-- query obtener partidos ganados de un equipo de visitante 
+CREATE FUNCTION get_partidos_perdidos_visitante(nnumero_equipo INT, nid_torneo INT)
+  RETURNS INT NOT DETERMINISTIC READS SQL DATA
+  RETURN (
+SELECT COUNT(*) AS partidos_ganados
+FROM partido
+INNER JOIN equipo ON equipo.numero_equipo = partido.equipo_visitante
+INNER JOIN informacion ON partido.id_partido = informacion.id_partido
+WHERE (equipo.numero_equipo = nnumero_equipo)
+  AND partido.id_torneo = nid_torneo
+      AND partido.division = (SELECT division FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+      AND partido.categoria = (SELECT categoria FROM equipo WHERE nnumero_equipo = equipo.numero_equipo)
+  AND (
+    informacion.resultado = '0:1'
+    OR informacion.resultado = '-:-'
+    OR informacion.resultado = '-:+'
+  )
+  GROUP BY partido.equipo_visitante
+)//
+
+CREATE FUNCTION get_partidos_perdidos(nnumero_equipo INt, nid_torneo INT)
+RETURNS INT NOT DETERMINISTIC READS SQL DATA
+RETURN (get_partidos_ganados_local(nnumero_equipo, nid_torneo) + get_partidos_ganados_visitante, nid_torneo)//
+
+CREATE PROCEDURE get_tabla_de_posiciones(IN nnumero_equipo INT, IN nid_torneo INT)
+BEGIN
+  SELECT equipo.nombre, get_partidos_ganados_visitante
+
+END
 
 delimiter ; 
