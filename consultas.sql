@@ -112,16 +112,120 @@ ELSE
     );
 
     -- maxiA
+    SET @division = 'MAXI';
+    SET @categoria = 'A';
+
     crear_ruedas: LOOP
-    SET nro_ruedas = nro_ruedas -1;
-    IF nro_ruedas < 0 THEN
-      LEAVE crear_ruedas;
-    END IF;
+      SET nro_ruedas = nro_ruedas -1;
+      IF nro_ruedas < 0 THEN
+        LEAVE crear_ruedas;
+      END IF;
+      INSERT INTO rueda(numero_rueda, id_torneo, division, categoria) 
+      VALUES (nro_ruedas+1, nid_torneo, @division, @categoria);
+      -- Crear fechas
+      -- NOTE: TREAT IF ODD AMOUNT OF TEAMS!!!
+      @amount_of_fechas = (
+        SELECT COUNT(UNIQUE(*))
+        FROM @maxiA
+      );
+
+      SET @amount_of_matches = (
+        SELECT COUNT(*) 
+        FROM @maxiA t1, @maxiA t2 
+        WHERE t1.id_equipo <> t2.id_equipo
+      );
+
+      SET @amount_of_matches_per_fecha = @amount_of_matches/@amount_of_fechas;
 
 
+      DECLARE done INT DEFAULT FALSE;
+      DECLARE nro_equipo1 INT;
+      DECLARE nro_equipo2 INT;
+      DECLARE curse CURSOR FOR @maxiA;
+      DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
-    ITERATE nro_ruedas;
+      OPEN curse;
+      crear_partidos: LOOP
+        FETCH curse INTO nro_equipo1, nro_equipo2;
+        IF done THEN
+          LEAVE crear_fechas;
+        END IF;
+
+      END LOOP;
+
+      
+
+
+      ITERATE nro_ruedas;
     END LOOP;
   END IF;
 END//
 delimiter ;
+
+delimiter //
+-- nid_torneo , nid_categoria, nid_division
+
+-- query obtener goles de local de un equipo nnumero_equipo
+SELECT equipo.nombre, COUNT(*) AS goles_local
+FROM gol
+INNER JOIN equipo ON partido.equipo_local = equipo.numero_equipo
+INNER JOIN partido ON partido.id_partido = gol.id_partido
+INNER JOIN jugador_partido ON (jugador_partido.numero_jugador = gol.numero_jugador AND jugador_partido.id_partido = gol.id_partido)
+WHERE (partido.equipo_local = nnumero_equipo 
+  AND partido.id_torneo = nid_torneo
+  AND partido.division = ndivision
+  AND partido.categoria = ncategoria
+  AND(
+    (jugador_partido.juega_para_local AND gol.en_contra = FALSE) 
+    OR (NOT jugador_partido.juega_para_local AND gol.en_contra = TRUE)
+    
+  )
+GROUP BY partido.equipo_local;
+
+-- query obtener goles de visitante de un equipo nnumero_equipo
+SELECT equipo.nombre, COUNT(*) AS goles_visitante
+FROM gol
+INNER JOIN partido ON partido.id_partido = gol.id_partido
+INNER JOIN equipo ON partido.equipo_visitante = equipo.numero_equipo
+INNER JOIN jugador_partido ON (jugador_partido.numero_jugador = gol.numero_jugador AND jugador_partido.id_partido = gol.id_partido)
+WHERE (partido.equipo_visitante = nnumero_equipo 
+  AND partido.id_torneo = nid_torneo
+  AND partido.division = ndivision
+  AND partido.categoria = ncategoria
+  AND(
+    (NOT jugador_partido.juega_para_local AND gol.en_contra = FALSE) 
+    OR (jugador_partido.juega_para_local AND gol.en_contra = TRUE)
+  )
+GROUP BY partido.equipo_visitante;
+
+-- query obtener partidos ganados de un equipo de local
+SELECT equipo.nombre, COUNT(*) AS partidos_ganados
+FROM partido
+INNER JOIN equipo ON equipo.numero_equipo = partido.equipo_local
+INNER JOIN informacion ON partido.id_partido = informacion.id_partido
+WHERE equipo.numero_equipo = nnumero_equipo 
+  AND partido.id_torneo = nid_torneo
+  AND partido.division = ndivision
+  AND partido.categoria = ncategoria
+  AND (
+    informacion.resultado = '1:0'
+    OR informacion.resultado = '+:-'
+  )
+  GROUP BY partido.equipo_local;
+
+-- query obtener partidos ganados de un equipo de visitante 
+SELECT equipo.nombre, COUNT(*) AS partidos_ganados
+FROM partido
+INNER JOIN equipo ON equipo.numero_equipo = partido.equipo_visitante
+INNER JOIN informacion ON partido.id_partido = informacion.id_partido
+WHERE equipo.numero_equipo = nnumero_equipo 
+  AND partido.id_torneo = nid_torneo
+  AND partido.division = ndivision
+  AND partido.categoria = ncategoria
+  AND (
+    informacion.resultado = '0:1'
+    OR informacion.resultado = '-:+'
+  )
+  GROUP BY partido.equipo_visitante;
+
+delimiter ; 
